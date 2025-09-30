@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:weekly_dash_board/core/utils/app_localizations.dart';
+import 'package:weekly_dash_board/core/utils/app_style.dart' as AppTheme;
 import 'package:weekly_dash_board/views/dashboard_view.dart';
 
 class SplashViewBody extends StatefulWidget {
@@ -68,11 +71,27 @@ class _SplashViewBodyState extends State<SplashViewBody> with SingleTickerProvid
                 scale: _scaleAnimation.value,
                 child: Opacity(
                   opacity: _fadeAnimation.value,
-                  child: Image.asset(
-                    'assets/images/splash.png',
-                    height: 120,
-                    width: 120,
-                    fit: BoxFit.contain,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.asset(
+                        'assets/images/splash.png',
+                        height: 120,
+                        width: 120,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        AppLocalizations.of(context).tr('app.title'),
+                        style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w900,
+                          fontFamily: GoogleFonts.libreBaskerville.toString(),
+                          fontSize: AppTheme.getResponsiveFontSize(context, fontSize: 40),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

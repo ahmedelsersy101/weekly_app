@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:weekly_dash_board/fetuers/more/presentation/views/widgets/achievement_section.dart';
+// import 'package:weekly_dash_board/fetuers/more/presentation/views/widgets/achievement_section.dart';
 import 'package:weekly_dash_board/fetuers/more/presentation/views/widgets/user_guide_section.dart';
 import 'package:weekly_dash_board/fetuers/more/presentation/views/widgets/contact_section.dart';
 import 'package:weekly_dash_board/fetuers/more/presentation/views/widgets/rate_share_section.dart';
@@ -21,9 +21,6 @@ class MoreView extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             StatisticsDashboardWidget(),
-            SizedBox(height: 24),
-
-            AchievementSection(),
             SizedBox(height: 24),
 
             UserGuideSection(),
