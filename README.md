@@ -24,54 +24,9 @@ A cross-platform Flutter app to plan, track, and visualize your weekly tasks. It
 
 Replace these with your real screenshots or GIFs:
 
-![Home](assets/screenshots/home.png)
-![Statistics](assets/screenshots/statistics.png)
-![Settings](assets/screenshots/settings.png)
-
----
-
-### Getting Started
-
-#### Requirements
-
-- Flutter (stable) with bundled Dart >= 3.8.1
-- Platforms supported: Android, iOS, Web, Windows, macOS, Linux
-- Recommended: Latest Flutter SDK and platform toolchains set up
-
-#### Installation
-
-1. Clone the repository
-   ```bash
-   git clone https://github.com/your-org/weekly_dash_board.git
-   cd weekly_dash_board
-   ```
-2. Install dependencies
-   ```bash
-   flutter pub get
-   ```
-3. (Optional) Generate code if you add Hive type adapters or builders later
-   ```bash
-   flutter pub run build_runner build --delete-conflicting-outputs
-   ```
-
-#### Run the app
-
-```bash
-flutter run
-```
-
-For web:
-
-```bash
-flutter run -d chrome
-```
-
-For desktop (example Windows):
-
-```bash
-flutter config --enable-windows-desktop
-flutter run -d windows
-```
+![Home](assets/screenshots/home.jpeg)
+![Statistics](assets/screenshots/statistics.jpeg)
+![Settings](assets/screenshots/settings.jpeg)
 
 ---
 
@@ -128,7 +83,7 @@ Core packages in use (see `pubspec.yaml` for full list):
 - `url_launcher`: Launch external URLs.
 - `device_preview`: Optional device preview in development.
 - `lottie`, `gif`: Animations and GIF support.
-- `google_sign_in`, `cloud_firestore`: Optional auth/sync integrations.
+- `google_sign_in`, `supabase_flutter`: Optional auth/sync integrations.
 
 Dev tooling:
 

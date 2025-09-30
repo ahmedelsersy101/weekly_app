@@ -4,8 +4,6 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   app_links
-  cloud_firestore
-  firebase_core
   sentry_flutter
   share_plus
   url_launcher_windows
