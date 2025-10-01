@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:weekly_dash_board/core/utils/app_localizations.dart';
+// ignore: library_prefixes
 import 'package:weekly_dash_board/core/utils/app_style.dart' as AppTheme;
 import 'package:weekly_dash_board/views/dashboard_view.dart';
 
@@ -84,7 +85,7 @@ class _SplashViewBodyState extends State<SplashViewBody> with SingleTickerProvid
                       Text(
                         AppLocalizations.of(context).tr('app.title'),
                         style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w900,
                           fontFamily: GoogleFonts.libreBaskerville.toString(),
                           fontSize: AppTheme.getResponsiveFontSize(context, fontSize: 40),

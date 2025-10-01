@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -5,14 +8,20 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// تحميل بيانات keystore من ملف key.properties
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "com.example.weekly_dash_board"
-    compileSdk = 34 // خليها 34 حالياً لأنه ده آخر SDK مدعوم ومستقر (36 لسه preview)
+    compileSdk = 36 // لازم SDK 36 عشان الـ plugins
 
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        // استخدام Java 11 (حل مشكلة التحذيرات بتاعة Java 8 obsolete)
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
         isCoreLibraryDesugaringEnabled = true
@@ -25,16 +34,24 @@ android {
     defaultConfig {
         applicationId = "com.example.weekly_dash_board"
         minSdk = flutter.minSdkVersion
-        targetSdk = 34
+        targetSdk = 36
         multiDexEnabled = true
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        create("release") {
+            keyAlias = keystoreProperties["keyAlias"] as String
+            keyPassword = keystoreProperties["keyPassword"] as String
+            storeFile = file(keystoreProperties["storeFile"] as String)
+            storePassword = keystoreProperties["storePassword"] as String
+        }
+    }
+
     buildTypes {
         release {
-            // لو عندك keystore خاص بالتوقيع ضيفه هنا بدلاً من debug
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             isShrinkResources = false
             proguardFiles(
@@ -53,7 +70,7 @@ dependencies {
     // Core library desugaring
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 
-    // Kotlin stdlib (خلي النسخة متوافقة مع نسخة الـ Kotlin Gradle Plugin في gradle.properties)
+    // Kotlin stdlib
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 
     // Multidex
