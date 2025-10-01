@@ -15,6 +15,7 @@ import 'package:weekly_dash_board/fetuers/home/data/services/hive_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:weekly_dash_board/core/services/supabase_auth_service.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:weekly_dash_board/core/widgets/permission_requester.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -99,6 +100,8 @@ class ResponsiveDashboardApp extends StatelessWidget {
           }
 
           return MaterialApp(
+            builder: (context, child) =>
+                PermissionRequester(child: child ?? const SizedBox.shrink()),
             home: const SplashView(),
             debugShowCheckedModeBanner: false,
             theme: lightTheme,
