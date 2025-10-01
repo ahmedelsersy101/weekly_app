@@ -16,7 +16,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.example.weekly_dash_board"
+    namespace = "com.ahmedelsersy.weekly_dash_board"
     compileSdk = 36 // لازم SDK 36 عشان الـ plugins
 
     ndkVersion = flutter.ndkVersion
@@ -32,7 +32,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.weekly_dash_board"
+        applicationId = "com.ahmedelsersy.weekly_dash_board"
         minSdk = flutter.minSdkVersion
         targetSdk = 36
         multiDexEnabled = true
@@ -76,6 +76,6 @@ dependencies {
     // Multidex
     implementation("androidx.multidex:multidex:2.0.1")
 
-    // Play Core
-    implementation("com.google.android.play:core:1.10.3")
+    // In-App Updates (المكتبة الجديدة المتوافقة مع SDK 34+)
+    implementation("com.google.android.play:app-update-ktx:2.1.0")
 }

@@ -1,4 +1,4 @@
-package com.example.weekly_dash_board
+package com.ahmedelsersy.weekly_dash_board
 
 import android.content.Intent
 import android.os.Bundle
