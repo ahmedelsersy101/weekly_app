@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -6,13 +9,12 @@ plugins {
 }
 
 android {
-    namespace = "com.example.weekly_dash_board"
-    compileSdk = 34 // خليها 34 حالياً لأنه ده آخر SDK مدعوم ومستقر (36 لسه preview)
+    namespace = "com.ahmedelsersy.weekly_dash_board"
+    compileSdk = 36
 
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        // استخدام Java 11 (حل مشكلة التحذيرات بتاعة Java 8 obsolete)
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
         isCoreLibraryDesugaringEnabled = true
@@ -23,18 +25,31 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.weekly_dash_board"
+        applicationId = "com.ahmedelsersy.weekly_dash_board"
         minSdk = flutter.minSdkVersion
-        targetSdk = 34
+        targetSdk = 36
         multiDexEnabled = true
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        create("release") {
+            val keystoreProperties = Properties()
+            val keystorePropertiesFile = rootProject.file("key.properties")
+            if (keystorePropertiesFile.exists()) {
+                keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+            }
+            storeFile = keystoreProperties["storeFile"]?.let { file(it.toString()) }
+            storePassword = keystoreProperties["storePassword"] as String?
+            keyAlias = keystoreProperties["keyAlias"] as String?
+            keyPassword = keystoreProperties["keyPassword"] as String?
+        }
+    }
+
     buildTypes {
         release {
-            // لو عندك keystore خاص بالتوقيع ضيفه هنا بدلاً من debug
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             isShrinkResources = false
             proguardFiles(
@@ -53,12 +68,12 @@ dependencies {
     // Core library desugaring
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 
-    // Kotlin stdlib (خلي النسخة متوافقة مع نسخة الـ Kotlin Gradle Plugin في gradle.properties)
+    // Kotlin stdlib
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 
     // Multidex
     implementation("androidx.multidex:multidex:2.0.1")
 
-    // Play Core
-    implementation("com.google.android.play:core:1.10.3")
+    // In-App Updates (المكتبة الجديدة المتوافقة مع SDK 34+)
+    implementation("com.google.android.play:app-update-ktx:2.1.0")
 }
