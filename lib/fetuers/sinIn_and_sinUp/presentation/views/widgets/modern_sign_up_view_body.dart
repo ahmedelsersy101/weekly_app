@@ -79,7 +79,7 @@ class _ModernSignUpViewBodyState extends State<ModernSignUpViewBody> {
 
   Future<void> _handleSignUp() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     if (!_acceptTerms) {
       _showSnackBar(AppLocalizations.of(context).tr('auth.acceptTermsRequired'));
       return;
@@ -97,18 +97,9 @@ class _ModernSignUpViewBodyState extends State<ModernSignUpViewBody> {
       );
 
       if (mounted) {
-        // Show success message and navigate back to sign in
-        _showSnackBar(
-          AppLocalizations.of(context).tr('auth.verificationEmailSent'),
-          isSuccess: true,
-        );
-        
-        // Navigate back to sign in after a delay
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) {
-            Navigator.of(context).pop();
-          }
-        });
+        // Show immediate success and navigate back right away
+        _showSnackBar(AppLocalizations.of(context).tr('auth.signUpSuccess'), isSuccess: true);
+        Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
@@ -129,18 +120,13 @@ class _ModernSignUpViewBodyState extends State<ModernSignUpViewBody> {
       SnackBar(
         content: Text(
           message,
-          style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w500,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium!.copyWith(color: Colors.white, fontWeight: FontWeight.w500),
         ),
-        backgroundColor: isSuccess 
-          ? Colors.green.shade600 
-          : Theme.of(context).colorScheme.error,
+        backgroundColor: isSuccess ? Colors.green.shade600 : Theme.of(context).colorScheme.error,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         margin: const EdgeInsets.all(16),
       ),
     );
@@ -156,10 +142,7 @@ class _ModernSignUpViewBodyState extends State<ModernSignUpViewBody> {
 
     return SafeArea(
       child: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(
-          horizontal: isSmallScreen ? 24 : 32,
-          vertical: 16,
-        ),
+        padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 24 : 32, vertical: 16),
         child: ConstrainedBox(
           constraints: BoxConstraints(
             minHeight: screenHeight - MediaQuery.of(context).padding.top - 100,
@@ -168,7 +151,7 @@ class _ModernSignUpViewBodyState extends State<ModernSignUpViewBody> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 32),
-              
+
               // Welcome Section
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -208,9 +191,9 @@ class _ModernSignUpViewBodyState extends State<ModernSignUpViewBody> {
                       validator: _validateFullName,
                       enabled: !_isLoading,
                     ),
-                    
+
                     const SizedBox(height: 24),
-                    
+
                     ModernAuthTextField(
                       label: AppLocalizations.of(context).tr('auth.emailAddress'),
                       hint: AppLocalizations.of(context).tr('auth.enterGmailAddress'),
@@ -220,9 +203,9 @@ class _ModernSignUpViewBodyState extends State<ModernSignUpViewBody> {
                       validator: _validateEmail,
                       enabled: !_isLoading,
                     ),
-                    
+
                     const SizedBox(height: 24),
-                    
+
                     ModernAuthTextField(
                       label: AppLocalizations.of(context).tr('auth.password'),
                       hint: AppLocalizations.of(context).tr('auth.createPassword'),
@@ -232,9 +215,9 @@ class _ModernSignUpViewBodyState extends State<ModernSignUpViewBody> {
                       validator: _validatePassword,
                       enabled: !_isLoading,
                     ),
-                    
+
                     const SizedBox(height: 24),
-                    
+
                     ModernAuthTextField(
                       label: AppLocalizations.of(context).tr('auth.confirmPassword'),
                       hint: AppLocalizations.of(context).tr('auth.confirmPasswordHint'),
@@ -244,24 +227,24 @@ class _ModernSignUpViewBodyState extends State<ModernSignUpViewBody> {
                       validator: _validateConfirmPassword,
                       enabled: !_isLoading,
                     ),
-                    
+
                     const SizedBox(height: 24),
-                    
+
                     // Terms and Conditions Checkbox
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Checkbox(
                           value: _acceptTerms,
-                          onChanged: _isLoading ? null : (value) {
-                            setState(() {
-                              _acceptTerms = value ?? false;
-                            });
-                          },
+                          onChanged: _isLoading
+                              ? null
+                              : (value) {
+                                  setState(() {
+                                    _acceptTerms = value ?? false;
+                                  });
+                                },
                           activeColor: colorScheme.primary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4),
-                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                         ),
                         Expanded(
                           child: Padding(
@@ -279,14 +262,20 @@ class _ModernSignUpViewBodyState extends State<ModernSignUpViewBody> {
                                     style: textTheme.bodyMedium!.copyWith(
                                       color: colorScheme.primary,
                                       fontWeight: FontWeight.w600,
-                                      fontSize: AppTheme.getResponsiveFontSize(context, fontSize: 14),
+                                      fontSize: AppTheme.getResponsiveFontSize(
+                                        context,
+                                        fontSize: 14,
+                                      ),
                                     ),
                                   ),
                                   TextSpan(
                                     text: AppLocalizations.of(context).tr('auth.and'),
                                     style: textTheme.bodyMedium!.copyWith(
                                       color: colorScheme.onSurface.withOpacity(0.7),
-                                      fontSize: AppTheme.getResponsiveFontSize(context, fontSize: 14),
+                                      fontSize: AppTheme.getResponsiveFontSize(
+                                        context,
+                                        fontSize: 14,
+                                      ),
                                     ),
                                   ),
                                   TextSpan(
@@ -294,7 +283,10 @@ class _ModernSignUpViewBodyState extends State<ModernSignUpViewBody> {
                                     style: textTheme.bodyMedium!.copyWith(
                                       color: colorScheme.primary,
                                       fontWeight: FontWeight.w600,
-                                      fontSize: AppTheme.getResponsiveFontSize(context, fontSize: 14),
+                                      fontSize: AppTheme.getResponsiveFontSize(
+                                        context,
+                                        fontSize: 14,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -304,9 +296,9 @@ class _ModernSignUpViewBodyState extends State<ModernSignUpViewBody> {
                         ),
                       ],
                     ),
-                    
+
                     const SizedBox(height: 32),
-                    
+
                     // Sign Up Button
                     ModernAuthButton(
                       text: AppLocalizations.of(context).tr('auth.createAccount'),
@@ -333,9 +325,11 @@ class _ModernSignUpViewBodyState extends State<ModernSignUpViewBody> {
                     children: [
                       WidgetSpan(
                         child: GestureDetector(
-                          onTap: _isLoading ? null : () {
-                            Navigator.of(context).pop();
-                          },
+                          onTap: _isLoading
+                              ? null
+                              : () {
+                                  Navigator.of(context).pop();
+                                },
                           child: Text(
                             AppLocalizations.of(context).tr('auth.signIn'),
                             style: textTheme.bodyMedium!.copyWith(

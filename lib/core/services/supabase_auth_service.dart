@@ -98,7 +98,7 @@ class SupabaseAuthService {
     return email.toLowerCase().endsWith('@gmail.com');
   }
 
-  /// Sign up with Gmail only - sends confirmation email
+  /// Sign up with Gmail only - immediate activation without email verification
   static Future<AuthResponse> signUp({
     required String email,
     required String password,
@@ -112,17 +112,25 @@ class SupabaseAuthService {
         );
       }
 
+      // Create the user without triggering email verification flow
       final response = await _supabase.auth.signUp(
         email: email,
         password: password,
         data: fullName != null ? {'full_name': fullName} : null,
-        emailRedirectTo: 'io.supabase.weeklydashboard://login-callback/',
       );
 
-      // Note: Don't save user data locally until email is verified
-      // Supabase will send confirmation email with custom redirect
+      // If sign up did not return an active session, sign in immediately
+      AuthResponse finalResponse = response;
+      if (response.user == null || _supabase.auth.currentSession == null) {
+        finalResponse = await _supabase.auth.signInWithPassword(email: email, password: password);
+      }
 
-      return response;
+      if (finalResponse.user != null) {
+        await _saveUserDataLocally(finalResponse.user!);
+        _handlePostLoginDataSync();
+      }
+
+      return finalResponse;
     } catch (e) {
       rethrow;
     }
@@ -439,7 +447,7 @@ class SupabaseAuthService {
         case 'Invalid login credentials':
           return 'Invalid email or password. Please try again.';
         case 'Email not confirmed':
-          return 'Please verify your email address first.';
+          return 'Unable to sign in. Please try again.';
         case 'User already registered':
           return 'An account with this email already exists.';
         case 'Password should be at least 6 characters':

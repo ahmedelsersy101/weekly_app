@@ -243,7 +243,7 @@
   "auth.signOutSuccess": "تم تسجيل الخروج بنجاح",
   "auth.signInSubtitle": "الوصول إلى حسابك",
   "auth.signUpSubtitle": "إنشاء حساب جديد",
-  "auth.signUpSuccess": "تم إنشاء الحساب بنجاح! يرجى التحقق من بريدك الإلكتروني للتأكيد.",
+  "auth.signUpSuccess": "إنشاء الحساب بنجاح تم!",
   "auth.signInSuccess": "مرحباً بعودتك! تم تسجيل الدخول بنجاح.",
   "auth.invalidCredentials": "بريد إلكتروني أو كلمة مرور غير صحيحة. يرجى المحاولة مرة أخرى.",
   "auth.emailNotConfirmed": "يرجى التحقق من بريدك الإلكتروني والنقر على رابط التأكيد.",

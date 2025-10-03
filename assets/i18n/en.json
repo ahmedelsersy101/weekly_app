@@ -244,7 +244,7 @@
   "auth.signOutSuccess": "Successfully signed out",
   "auth.signInSubtitle": "Access your account",
   "auth.signUpSubtitle": "Create a new account",
-  "auth.signUpSuccess": "Account created successfully! Please check your email for verification.",
+  "auth.signUpSuccess": "Account created successfully!",
   "auth.signInSuccess": "Welcome back! Signed in successfully.",
   "auth.invalidCredentials": "Invalid email or password. Please try again.",
   "auth.emailNotConfirmed": "Please check your email and click the confirmation link.",
