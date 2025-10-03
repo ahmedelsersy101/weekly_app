@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:weekly_dash_board/core/theme/app_theme.dart';
 import 'package:weekly_dash_board/core/services/search_service.dart';
 import 'package:weekly_dash_board/core/services/performance_service.dart';
+import 'package:weekly_dash_board/core/utils/app_localizations.dart';
 import 'package:weekly_dash_board/fetuers/home/data/models/task_model.dart';
 import 'package:weekly_dash_board/fetuers/home/presentation/view_model/weekly_cubit.dart';
 
@@ -158,7 +159,7 @@ class _TaskSearchWidgetState extends State<TaskSearchWidget> {
                 controller: _searchController,
                 onChanged: (value) => _onSearchChanged(),
                 decoration: InputDecoration(
-                  hintText: 'Search tasks',
+                  hintText:  AppLocalizations.of(context).tr('settings.search'),
                   prefixIcon: Icon(
                     Icons.search,
                     color: Theme.of(context).colorScheme.onSurface,

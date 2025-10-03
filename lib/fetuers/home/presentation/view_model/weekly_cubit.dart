@@ -35,8 +35,6 @@ class WeeklyCubit extends Cubit<WeeklyState> {
     try {
       final settings = await SettingsService.loadSettings();
       _currentWeekStart = settings.weekStart;
-
-
     } catch (e) {
       _currentWeekStart = WeekStart.saturday;
     }
@@ -67,7 +65,7 @@ class WeeklyCubit extends Cubit<WeeklyState> {
       final currentState = state as WeeklySuccess;
       // Get current user ID for the task
       final userId = await SupabaseAuthService.getUserId() ?? '';
-      
+
       final newTask = TaskModel(
         id: _uuid.v4(),
         userId: userId,
@@ -83,19 +81,18 @@ class WeeklyCubit extends Cubit<WeeklyState> {
         recurrenceRule: recurrenceRule,
       );
 
-      final updatedTasks = List<TaskModel>.from(currentState.weeklyState.tasks)
-        ..add(newTask);
-      
+      final updatedTasks = List<TaskModel>.from(currentState.weeklyState.tasks)..add(newTask);
+
       // Schedule notification if reminder time is set
       if (reminderTime != null) {
         await _scheduleTaskNotification(newTask);
       }
-      
+
       // If this is a recurring task, generate instances for the next few weeks
       if (recurrenceRule != null && recurrenceRule.isRecurring) {
         final recurringInstances = _generateRecurringInstances(newTask, recurrenceRule);
         updatedTasks.addAll(recurringInstances);
-        
+
         // Schedule notifications for recurring instances
         for (final instance in recurringInstances) {
           if (instance.reminderTime != null) {
@@ -103,9 +100,145 @@ class WeeklyCubit extends Cubit<WeeklyState> {
           }
         }
       }
-      
+
       _updateState(updatedTasks);
     }
+  }
+
+  /// Atomically add the same task across multiple days in one state update
+  Future<void> addTaskToDays(
+    String title,
+    Set<int> days, {
+    bool isImportant = false,
+    TimeOfDay? reminderTime,
+    TaskPriority priority = TaskPriority.medium,
+    String categoryId = 'other',
+    String? description,
+    List<String> tags = const [],
+    RecurrenceRule? recurrenceRule,
+  }) async {
+    if (state is! WeeklySuccess) return;
+    final currentState = state as WeeklySuccess;
+    final userId = await SupabaseAuthService.getUserId() ?? '';
+
+    // Ensure valid unique days (ignore invalid indices)
+    final uniqueDays = days.where((d) => d >= 0 && d <= 6).toSet();
+    if (uniqueDays.isEmpty) return;
+
+    final List<TaskModel> newTasks = [];
+    for (final day in uniqueDays) {
+      final t = TaskModel(
+        id: _uuid.v4(),
+        userId: userId,
+        title: title,
+        description: description,
+        isCompleted: false,
+        dayOfWeek: day,
+        isImportant: isImportant,
+        reminderTime: reminderTime,
+        priority: priority,
+        categoryId: categoryId,
+        tags: tags,
+        recurrenceRule: recurrenceRule,
+      );
+      newTasks.add(t);
+    }
+
+    final updatedTasks = List<TaskModel>.from(currentState.weeklyState.tasks)..addAll(newTasks);
+
+    // Schedule notifications after list prepared
+    for (final task in newTasks) {
+      if (task.reminderTime != null) {
+        await _scheduleTaskNotification(task);
+      }
+    }
+
+    _updateState(updatedTasks);
+  }
+
+  /// Update a task across selected days: add new days, remove deselected days, and update existing
+  Future<void> updateTaskAcrossDays(
+    String baseTaskId,
+    Set<int> targetDays, {
+    String? newTitle,
+    bool? isImportant,
+    TimeOfDay? reminderTime,
+    String? categoryId,
+    TaskPriority? priority,
+  }) async {
+    if (state is! WeeklySuccess) return;
+    final currentState = state as WeeklySuccess;
+
+    final baseTask = currentState.weeklyState.tasks.firstWhere((t) => t.id == baseTaskId);
+    final String seriesKeyTitle = newTitle ?? baseTask.title;
+
+    // Consider all tasks with the same title as belonging to the same logical series
+    final List<TaskModel> series = currentState.weeklyState.tasks
+        .where((t) => t.title == baseTask.title)
+        .toList();
+
+    final existingByDay = {for (final t in series) t.dayOfWeek: t};
+    final normalizedTargetDays = targetDays.where((d) => d >= 0 && d <= 6).toSet();
+
+    final List<TaskModel> tasksAfterRemoval = currentState.weeklyState.tasks.where((t) {
+      // Remove series tasks that are not in target days or will be re-added/updated
+      final isSameSeries = t.title == baseTask.title;
+      if (!isSameSeries) return true;
+      return normalizedTargetDays.contains(t.dayOfWeek);
+    }).toList();
+
+    // Update existing days and create missing ones
+    final List<TaskModel> additionsOrUpdates = [];
+    for (final d in normalizedTargetDays) {
+      if (existingByDay.containsKey(d)) {
+        final existing = existingByDay[d]!;
+        final updated = existing.copyWith(
+          title: seriesKeyTitle,
+          isImportant: isImportant ?? existing.isImportant,
+          reminderTime: reminderTime ?? existing.reminderTime,
+          categoryId: categoryId ?? existing.categoryId,
+          priority: priority ?? existing.priority,
+        );
+        additionsOrUpdates.add(updated);
+      } else {
+        // Create sibling instance for new day
+        additionsOrUpdates.add(
+          TaskModel(
+            id: _uuid.v4(),
+            userId: baseTask.userId,
+            title: seriesKeyTitle,
+            description: baseTask.description,
+            isCompleted: false,
+            dayOfWeek: d,
+            isImportant: isImportant ?? baseTask.isImportant,
+            reminderTime: reminderTime ?? baseTask.reminderTime,
+            priority: priority ?? baseTask.priority,
+            categoryId: categoryId ?? baseTask.categoryId,
+            tags: baseTask.tags,
+            parentRecurrenceId: baseTask.parentRecurrenceId,
+            recurrenceRule: baseTask.recurrenceRule,
+          ),
+        );
+      }
+    }
+
+    final merged = <TaskModel>[];
+    // Keep non-series tasks and add updated series tasks once
+    for (final t in tasksAfterRemoval) {
+      if (t.title != baseTask.title) {
+        merged.add(t);
+      }
+    }
+    merged.addAll(additionsOrUpdates);
+
+    // Update notifications as needed
+    for (final t in additionsOrUpdates) {
+      if (t.reminderTime != null) {
+        await _scheduleTaskNotification(t);
+      }
+    }
+
+    _updateState(merged);
   }
 
   void addQuickTask(String title, int dayOfWeek) {
@@ -130,9 +263,7 @@ class WeeklyCubit extends Cubit<WeeklyState> {
     final weekNumber = _getCurrentWeekNumber();
     final totalTasks = tasks.length;
     final completedTasks = tasks.where((task) => task.isCompleted).length;
-    final completionPercentage = totalTasks > 0
-        ? (completedTasks / totalTasks) * 100
-        : 0.0;
+    final completionPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0.0;
     final dayStats = _calculateDayStats(tasks);
 
     final newState = WeeklyStateModel(
@@ -172,9 +303,7 @@ class WeeklyCubit extends Cubit<WeeklyState> {
   bool areAllTasksCompletedForDay(int dayOfWeek) {
     if (state is WeeklySuccess) {
       final current = (state as WeeklySuccess).weeklyState;
-      final dayTasks = current.tasks
-          .where((t) => t.dayOfWeek == dayOfWeek)
-          .toList();
+      final dayTasks = current.tasks.where((t) => t.dayOfWeek == dayOfWeek).toList();
       if (dayTasks.isEmpty) return false;
       return dayTasks.every((t) => t.isCompleted);
     }
@@ -187,9 +316,7 @@ class WeeklyCubit extends Cubit<WeeklyState> {
 
     final startOfYear = DateTime(today.year, 1, 1);
 
-    final startOfYearWeekday = startOfYear.weekday == 7
-        ? 0
-        : startOfYear.weekday;
+    final startOfYearWeekday = startOfYear.weekday == 7 ? 0 : startOfYear.weekday;
 
     final daysToSubtract = startOfYearWeekday == 0 ? 0 : 7 - startOfYearWeekday;
 
@@ -212,9 +339,7 @@ class WeeklyCubit extends Cubit<WeeklyState> {
 
     for (final date in testDates) {
       final weekNum = _getWeekNumberForDate(date);
-      print(
-        'التاريخ: ${date.day}/${date.month}/${date.year} = الأسبوع $weekNum',
-      );
+      print('التاريخ: ${date.day}/${date.month}/${date.year} = الأسبوع $weekNum');
     }
   }
 
@@ -222,9 +347,7 @@ class WeeklyCubit extends Cubit<WeeklyState> {
     final today = DateTime(targetDate.year, targetDate.month, targetDate.day);
 
     final startOfYear = DateTime(today.year, 1, 1);
-    final startOfYearWeekday = startOfYear.weekday == 7
-        ? 0
-        : startOfYear.weekday;
+    final startOfYearWeekday = startOfYear.weekday == 7 ? 0 : startOfYear.weekday;
     final daysToSubtract = startOfYearWeekday == 0 ? 0 : 7 - startOfYearWeekday;
     final firstWeekStart = startOfYear.subtract(Duration(days: daysToSubtract));
 
@@ -240,7 +363,7 @@ class WeeklyCubit extends Cubit<WeeklyState> {
     final dayNames = _getDayNames(weekStart);
     final dayStats = <DayStats>[];
 
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 7; i++) {
       final dayTasks = tasks.where((task) => task.dayOfWeek == i).toList();
       final totalTasks = dayTasks.length;
       final completedTasks = dayTasks.where((task) => task.isCompleted).length;
@@ -272,6 +395,7 @@ class WeeklyCubit extends Cubit<WeeklyState> {
           'tuesday',
           'wednesday',
           'thursday',
+          'friday',
         ]);
         break;
       case WeekStart.sunday:
@@ -282,6 +406,7 @@ class WeeklyCubit extends Cubit<WeeklyState> {
           'wednesday',
           'thursday',
           'friday',
+          'saturday',
         ]);
         break;
       case WeekStart.monday:
@@ -292,6 +417,7 @@ class WeeklyCubit extends Cubit<WeeklyState> {
           'thursday',
           'friday',
           'saturday',
+          'sunday',
         ]);
         break;
       case WeekStart.tuesday:
@@ -302,6 +428,7 @@ class WeeklyCubit extends Cubit<WeeklyState> {
           'friday',
           'saturday',
           'sunday',
+          'monday',
         ]);
         break;
       case WeekStart.wednesday:
@@ -312,6 +439,7 @@ class WeeklyCubit extends Cubit<WeeklyState> {
           'saturday',
           'sunday',
           'monday',
+          'tuesday',
         ]);
         break;
       case WeekStart.thursday:
@@ -322,6 +450,7 @@ class WeeklyCubit extends Cubit<WeeklyState> {
           'sunday',
           'monday',
           'tuesday',
+          'wednesday',
         ]);
         break;
       case WeekStart.friday:
@@ -332,6 +461,7 @@ class WeeklyCubit extends Cubit<WeeklyState> {
           'monday',
           'tuesday',
           'wednesday',
+          'thursday',
         ]);
         break;
     }
@@ -389,9 +519,7 @@ class WeeklyCubit extends Cubit<WeeklyState> {
   List<TaskModel> getTasksForDay(int dayOfWeek) {
     if (state is WeeklySuccess) {
       final currentState = state as WeeklySuccess;
-      return currentState.weeklyState.tasks
-          .where((task) => task.dayOfWeek == dayOfWeek)
-          .toList();
+      return currentState.weeklyState.tasks.where((task) => task.dayOfWeek == dayOfWeek).toList();
     }
     return [];
   }
@@ -484,51 +612,50 @@ class WeeklyCubit extends Cubit<WeeklyState> {
     return autoGeneratedTitles.contains(task.title);
   }
 
- void editTask(
-  String taskId,
-  String newTitle, {
-  bool? isImportant,
-  TimeOfDay? reminderTime,
-  String? categoryId,
-  TaskPriority? priority,
-}) async {
-  if (state is WeeklySuccess) {
-    final currentState = state as WeeklySuccess;
-    TaskModel? originalTask;
-    TaskModel? updatedTask;
+  void editTask(
+    String taskId,
+    String newTitle, {
+    bool? isImportant,
+    TimeOfDay? reminderTime,
+    String? categoryId,
+    TaskPriority? priority,
+  }) async {
+    if (state is WeeklySuccess) {
+      final currentState = state as WeeklySuccess;
+      TaskModel? originalTask;
+      TaskModel? updatedTask;
 
-    final updatedTasks = currentState.weeklyState.tasks.map((task) {
-      if (task.id == taskId) {
-        originalTask = task;
-        updatedTask = task.copyWith(
-          title: newTitle,
-          isImportant: isImportant ?? task.isImportant,
-          reminderTime: reminderTime ?? task.reminderTime,
-          categoryId: categoryId ?? task.categoryId,
-          priority: priority ?? task.priority,
-        );
-        return updatedTask!;
+      final updatedTasks = currentState.weeklyState.tasks.map((task) {
+        if (task.id == taskId) {
+          originalTask = task;
+          updatedTask = task.copyWith(
+            title: newTitle,
+            isImportant: isImportant ?? task.isImportant,
+            reminderTime: reminderTime ?? task.reminderTime,
+            categoryId: categoryId ?? task.categoryId,
+            priority: priority ?? task.priority,
+          );
+          return updatedTask!;
+        }
+        return task;
+      }).toList();
+
+      // تحديث الإشعارات لو حصل تغيير في التذكير
+      if (originalTask != null && updatedTask != null) {
+        await _updateTaskNotification(originalTask!, updatedTask!);
       }
-      return task;
-    }).toList();
 
-    // تحديث الإشعارات لو حصل تغيير في التذكير
-    if (originalTask != null && updatedTask != null) {
-      await _updateTaskNotification(originalTask!, updatedTask!);
+      _updateState(updatedTasks);
     }
-
-    _updateState(updatedTasks);
   }
-}
-
 
   void deleteTask(String taskId) async {
     if (state is WeeklySuccess) {
       final currentState = state as WeeklySuccess;
-      
+
       // Cancel notification for the deleted task
       await _cancelTaskNotification(taskId);
-      
+
       final updatedTasks = currentState.weeklyState.tasks
           .where((task) => task.id != taskId)
           .toList();
@@ -576,16 +703,16 @@ class WeeklyCubit extends Cubit<WeeklyState> {
     final instances = <TaskModel>[];
     final now = DateTime.now();
     final endDate = now.add(const Duration(days: 90)); // Generate for next 3 months
-    
+
     final occurrences = recurrenceRule.generateOccurrences(now, endDate);
-    
+
     for (final occurrence in occurrences) {
       // Skip the original task date
       if (occurrence.isAtSameMomentAs(now)) continue;
-      
+
       final dayIndex = _mapDateTimeToAppDayIndex(occurrence);
       if (dayIndex == null) continue; // Skip Friday (day off)
-      
+
       final instance = parentTask.copyWith(
         id: _uuid.v4(),
         parentRecurrenceId: parentTask.id,
@@ -594,10 +721,10 @@ class WeeklyCubit extends Cubit<WeeklyState> {
         isCompleted: false,
         completedAt: null,
       );
-      
+
       instances.add(instance);
     }
-    
+
     return instances;
   }
 
@@ -606,9 +733,9 @@ class WeeklyCubit extends Cubit<WeeklyState> {
     if (state is WeeklySuccess) {
       final currentState = state as WeeklySuccess;
       final task = currentState.weeklyState.tasks.firstWhere((t) => t.id == taskId);
-      
+
       List<TaskModel> updatedTasks;
-      
+
       if (deleteEntireSeries || task.isRecurrenceParent) {
         // Delete the entire series
         final seriesId = task.isRecurrenceParent ? task.id : task.parentRecurrenceId;
@@ -629,11 +756,9 @@ class WeeklyCubit extends Cubit<WeeklyState> {
         // Cancel notification for this instance
         _cancelTaskNotification(taskId);
 
-        updatedTasks = currentState.weeklyState.tasks
-            .where((t) => t.id != taskId)
-            .toList();
+        updatedTasks = currentState.weeklyState.tasks.where((t) => t.id != taskId).toList();
       }
-      
+
       _updateState(updatedTasks);
     }
   }
@@ -651,9 +776,9 @@ class WeeklyCubit extends Cubit<WeeklyState> {
     if (state is WeeklySuccess) {
       final currentState = state as WeeklySuccess;
       final task = currentState.weeklyState.tasks.firstWhere((t) => t.id == taskId);
-      
+
       List<TaskModel> updatedTasks;
-      
+
       if (editEntireSeries || task.isRecurrenceParent) {
         // Edit the entire series
         final seriesId = task.isRecurrenceParent ? task.id : task.parentRecurrenceId;
@@ -674,7 +799,10 @@ class WeeklyCubit extends Cubit<WeeklyState> {
         for (final t in updatedTasks) {
           if (t.id == seriesId || t.parentRecurrenceId == seriesId) {
             // Find original version of this task before update
-            final original = currentState.weeklyState.tasks.firstWhere((o) => o.id == t.id, orElse: () => t);
+            final original = currentState.weeklyState.tasks.firstWhere(
+              (o) => o.id == t.id,
+              orElse: () => t,
+            );
             _updateTaskNotification(original, t);
           }
         }
@@ -700,7 +828,7 @@ class WeeklyCubit extends Cubit<WeeklyState> {
         final updatedTask = updatedTasks.firstWhere((u) => u.id == taskId);
         _updateTaskNotification(originalTask, updatedTask);
       }
-      
+
       _updateState(updatedTasks);
     }
   }
@@ -710,14 +838,18 @@ class WeeklyCubit extends Cubit<WeeklyState> {
     if (state is WeeklySuccess) {
       final currentState = state as WeeklySuccess;
       final task = currentState.weeklyState.tasks.firstWhere((t) => t.id == taskId);
-      
+
       if (task.isRecurrenceParent) {
         return currentState.weeklyState.tasks
             .where((t) => t.id == taskId || t.parentRecurrenceId == taskId)
             .toList();
       } else if (task.isRecurrenceInstance) {
         return currentState.weeklyState.tasks
-            .where((t) => t.parentRecurrenceId == task.parentRecurrenceId || t.id == task.parentRecurrenceId)
+            .where(
+              (t) =>
+                  t.parentRecurrenceId == task.parentRecurrenceId ||
+                  t.id == task.parentRecurrenceId,
+            )
             .toList();
       }
     }
@@ -727,20 +859,20 @@ class WeeklyCubit extends Cubit<WeeklyState> {
   /// Schedule a notification for a task
   Future<void> _scheduleTaskNotification(TaskModel task) async {
     if (task.reminderTime == null) return;
-    
+
     try {
       final notificationService = NotificationService();
       final scheduledDateTime = _getTaskNotificationDateTime(task);
-      
+
       if (scheduledDateTime == null || scheduledDateTime.isBefore(DateTime.now())) {
         return; // Don't schedule notifications in the past
       }
-      
+
       final notificationId = task.id.hashCode; // Use task ID hash as notification ID
       final title = 'Task Reminder';
       final body = task.title;
       final payload = task.id;
-      
+
       await notificationService.scheduleNotification(
         id: notificationId,
         title: title,
@@ -753,30 +885,30 @@ class WeeklyCubit extends Cubit<WeeklyState> {
       print('Failed to schedule notification for task ${task.id}: $e');
     }
   }
-  
+
   /// Update notification when task is edited
   Future<void> _updateTaskNotification(TaskModel originalTask, TaskModel updatedTask) async {
     try {
       final notificationService = NotificationService();
       final notificationId = originalTask.id.hashCode;
-      
+
       // If reminder time was removed, cancel the notification
       if (updatedTask.reminderTime == null) {
         await notificationService.cancelNotification(notificationId);
         return;
       }
-      
+
       // If reminder time was added or changed, update the notification
       final newScheduledDateTime = _getTaskNotificationDateTime(updatedTask);
       if (newScheduledDateTime == null || newScheduledDateTime.isBefore(DateTime.now())) {
         await notificationService.cancelNotification(notificationId);
         return;
       }
-      
+
       final title = 'Task Reminder';
       final body = updatedTask.title;
       final payload = updatedTask.id;
-      
+
       await notificationService.updateNotification(
         id: notificationId,
         title: title,
@@ -788,7 +920,7 @@ class WeeklyCubit extends Cubit<WeeklyState> {
       print('Failed to update notification for task ${updatedTask.id}: $e');
     }
   }
-  
+
   /// Cancel notification when task is deleted
   Future<void> _cancelTaskNotification(String taskId) async {
     try {
@@ -799,17 +931,17 @@ class WeeklyCubit extends Cubit<WeeklyState> {
       print('Failed to cancel notification for task $taskId: $e');
     }
   }
-  
+
   /// Get the DateTime when the notification should be scheduled
   DateTime? _getTaskNotificationDateTime(TaskModel task) {
     if (task.reminderTime == null) return null;
-    
+
     final now = DateTime.now();
     final reminderTime = task.reminderTime!;
-    
+
     // Calculate the target date based on the task's day of week
     final targetDate = _getDateForTaskDay(task.dayOfWeek);
-    
+
     // Combine date and time
     final scheduledDateTime = DateTime(
       targetDate.year,
@@ -818,15 +950,15 @@ class WeeklyCubit extends Cubit<WeeklyState> {
       reminderTime.hour,
       reminderTime.minute,
     );
-    
+
     // If the scheduled time is in the past, schedule for next week
     if (scheduledDateTime.isBefore(now)) {
       return scheduledDateTime.add(const Duration(days: 7));
     }
-    
+
     return scheduledDateTime;
   }
-  
+
   /// Get the actual date for a task's day of week
   DateTime _getDateForTaskDay(int dayOfWeek) {
     final now = DateTime.now();

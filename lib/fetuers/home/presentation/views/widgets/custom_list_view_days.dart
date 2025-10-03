@@ -16,7 +16,7 @@ class CustomListViewDays extends StatelessWidget {
           child: CustomCardHomeView(dayIndex: index),
         );
       },
-      itemCount: 6, // Saturday to Thursday (6 days), Friday is day off
+      itemCount: 7, // Saturday to Thursday (6 days), Friday is day off
     );
   }
 }
@@ -33,7 +33,7 @@ class CustomGridViewDays extends StatelessWidget {
         crossAxisCount: 2, // عدد الأعمدة (موبايل 2 - ديسكتوب 3 أو 4)
         mainAxisSpacing: 12,
         crossAxisSpacing: 12,
-        itemCount: 6,
+        itemCount: 7,
         shrinkWrap: true,
         physics:
             const NeverScrollableScrollPhysics(), // مهم عشان scroll كله يبقى مع الـ CustomScrollView

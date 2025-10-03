@@ -128,6 +128,7 @@ class StatisticsService {
       'Tuesday',
       'Wednesday',
       'Thursday',
+      'Friday',
     ];
     final dayStats = <int, DayProductivityStats>{};
 

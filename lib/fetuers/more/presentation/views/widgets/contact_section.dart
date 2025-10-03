@@ -177,7 +177,7 @@ class ContactSection extends StatelessWidget {
   Future<void> _sendEmail() async {
     final Uri emailUri = Uri(
       scheme: 'mailto',
-      path: 'support@weeklyapp.com',
+      path: 'ahmedelsersy101@gmail.com',
       query:
           'subject=Weekly App Support Request&body=Hello, I need help with the Weekly App.',
     );
@@ -197,16 +197,16 @@ class ContactSection extends StatelessWidget {
     String url;
     switch (platform) {
       case 'facebook':
-        url = 'https://facebook.com/weeklyapp';
+        url = 'https://web.facebook.com/AhMedAlsErSy10';
         break;
-      case 'twitter':
-        url = 'https://twitter.com/weeklyapp';
+      case 'whatsapp':
+        url = 'https://wa.me/qr/E7KX4XV5NJJAI1';
         break;
-      case 'instagram':
-        url = 'https://instagram.com/weeklyapp';
+      case 'telegram':
+        url = 'https://t.me/ahmedelsersy10';
         break;
       default:
-        url = 'https://weeklyapp.com';
+        url = 'https://ahmedsersy10.github.io/weekly_app/';
     }
 
     try {

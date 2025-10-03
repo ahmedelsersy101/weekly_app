@@ -222,6 +222,7 @@ class CustomButtonAddTasks extends StatelessWidget {
     final TextEditingController titleController = TextEditingController();
     bool isImportant = false;
     TimeOfDay? reminderTime;
+    final List<int> selectedDays = [];
 
     // جلب الكاتيجوريز
     final categories = TaskCategoryModel.getDefaultCategories();
@@ -277,6 +278,64 @@ class CustomButtonAddTasks extends StatelessWidget {
                       // autofocus: true,
                     ),
                     const SizedBox(height: 12),
+
+                    // اختيار أيام أخرى لنفس المهمة (باستثناء اليوم الحالي)
+                    Text(
+                      AppLocalizations.of(context).tr('settings.selectOtherDays'),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _orderedOtherDays(dayIndex).map((d) {
+                        final isSelected = selectedDays.contains(d);
+                        return FilterChip(
+                          label: Text(_localizedDayLabel(context, d)),
+                          selected: isSelected,
+                          onSelected: (val) {
+                            setState(() {
+                              if (val) {
+                                selectedDays.add(d);
+                              } else {
+                                selectedDays.remove(d);
+                              }
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 8),
+                    // عرض الأيام المحددة بما فيها اليوم الأساسي
+                    Builder(
+                      builder: (context) {
+                        final combinedDays = <int>[dayIndex, ...selectedDays];
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              AppLocalizations.of(context).tr('settings.selectedDays'),
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: combinedDays
+                                  .map((d) => Chip(label: Text(_localizedDayLabel(context, d))))
+                                  .toList(),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                        );
+                      },
+                    ),
 
                     // Checkbox أهمية المهمة
                     Container(
@@ -439,13 +498,22 @@ class CustomButtonAddTasks extends StatelessWidget {
                               // ignore: unused_local_variable
                               final priority = getCategoryPriority(selectedCategory.id);
 
-                              context.read<WeeklyCubit>().addTask(
+                              // اجمع الأيام النهائية: يوم الإنشاء + الأيام المختارة (بدون تكرار)
+                              final finalDays = <int>{dayIndex, ...selectedDays};
+                              // تسجيل للمساعدة على تتبع المشكلة سابقاً
+                              // ignore: avoid_print
+                              print(
+                                'AddTask finalDays=$finalDays, title=${titleController.text.trim()}',
+                              );
+
+                              context.read<WeeklyCubit>().addTaskToDays(
                                 titleController.text.trim(),
-                                dayIndex,
+                                finalDays,
                                 isImportant: isImportant,
                                 reminderTime: reminderTime,
                                 categoryId: selectedCategory.id,
                               );
+
                               Navigator.of(context).pop();
                             }
                           },
@@ -492,6 +560,17 @@ class CustomButtonAddTasks extends StatelessWidget {
       borderRadius: const BorderRadius.all(Radius.circular(8)),
     );
   }
+}
+
+List<int> _orderedOtherDays(int currentDay) {
+  // ترتيب الأيام المتبقية ابتداءً من اليوم التالي وحتى قبل اليوم الحالي
+  return List<int>.generate(6, (i) => (currentDay + 1 + i) % 7);
+}
+
+String _localizedDayLabel(BuildContext context, int dayIndex) {
+  const keys = ['saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+  if (dayIndex < 0 || dayIndex >= keys.length) return '';
+  return AppLocalizations.of(context).tr(keys[dayIndex]);
 }
 
 class _DayContent extends StatelessWidget {

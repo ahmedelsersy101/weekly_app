@@ -180,7 +180,7 @@ class RateShareSection extends StatelessWidget {
     String url;
 
     if (Platform.isAndroid) {
-      url = 'https://play.google.com/store/apps/details?id=com.example.weekly';
+      url = 'https://play.google.com/store/apps/details?id=com.ahmedelsersy.weekly_dash_board';
     } else if (Platform.isIOS) {
       url = 'https://apps.apple.com/app/weekly-app/id123456789';
     } else {
@@ -204,7 +204,7 @@ class RateShareSection extends StatelessWidget {
       await Share.share(
         'Check out Weekly App - Your Personal Task Manager! 📱✨\n\n'
         'Stay organized and productive with this amazing app!\n\n'
-        'Download now: https://weeklyapp.com',
+        'Download now: https://play.google.com/store/apps/details?id=com.ahmedelsersy.weekly_dash_board',
         subject: 'Weekly App - Task Management Made Simple',
       );
     } catch (e) {

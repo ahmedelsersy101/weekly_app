@@ -191,6 +191,7 @@ class _CustomListTasksState extends State<CustomListTasks> {
     bool isImportant = task.isImportant;
     TimeOfDay? reminderTime = task.reminderTime;
     String? selectedCategoryId = task.categoryId; // التصنيف الحالي
+    final Set<int> selectedDays = <int>{};
 
     showModalBottomSheet(
       context: context,
@@ -228,6 +229,70 @@ class _CustomListTasksState extends State<CustomListTasks> {
                     autofocus: true,
                   ),
                   const SizedBox(height: 12),
+
+                  /// اختيار أيام أخرى (استبعاد يوم المهمة الأصلي)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      AppLocalizations.of(context).tr('settings.selectOtherDays'),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _orderedOtherDays(task.dayOfWeek).map((d) {
+                      final isSelected = selectedDays.contains(d);
+                      return FilterChip(
+                        label: Text(_localizedDayLabel(context, d)),
+                        selected: isSelected,
+                        onSelected: (val) {
+                          setState(() {
+                            if (val) {
+                              selectedDays.add(d);
+                            } else {
+                              selectedDays.remove(d);
+                            }
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 8),
+                  // عرض الأيام المحددة بما فيها يوم المهمة الأصلي
+                  Builder(
+                    builder: (context) {
+                      final combinedDays = <int>[task.dayOfWeek, ...selectedDays];
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              AppLocalizations.of(context).tr('settings.selectedDays'),
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: combinedDays
+                                .map((d) => Chip(label: Text(_localizedDayLabel(context, d))))
+                                .toList(),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                      );
+                    },
+                  ),
 
                   /// مهم
                   Container(
@@ -384,16 +449,23 @@ class _CustomListTasksState extends State<CustomListTasks> {
                       ),
                       const SizedBox(width: 8),
                       ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
                           if (titleController.text.trim().isNotEmpty) {
-                            context.read<WeeklyCubit>().editTask(
+                            final cubit = context.read<WeeklyCubit>();
+                            // الهدف: توحيد التعديل عبر جميع الأيام المستهدفة
+                            final targetDays = <int>{task.dayOfWeek, ...selectedDays};
+                            // ignore: avoid_print
+                            print(
+                              'EditTask targetDays=$targetDays, newTitle=${titleController.text.trim()}',
+                            );
+                            await cubit.updateTaskAcrossDays(
                               task.id,
-                              titleController.text.trim(),
+                              targetDays,
+                              newTitle: titleController.text.trim(),
                               isImportant: isImportant,
                               reminderTime: reminderTime,
                               categoryId: selectedCategoryId,
                             );
-
                             Navigator.of(context).pop();
                           }
                         },
@@ -424,4 +496,14 @@ class _CustomListTasksState extends State<CustomListTasks> {
   void _deleteTask(BuildContext context, TaskModel task) {
     context.read<WeeklyCubit>().deleteTask(task.id);
   }
+}
+
+List<int> _orderedOtherDays(int currentDay) {
+  return List<int>.generate(6, (i) => (currentDay + 1 + i) % 7);
+}
+
+String _localizedDayLabel(BuildContext context, int dayIndex) {
+  const keys = ['saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+  if (dayIndex < 0 || dayIndex >= keys.length) return '';
+  return AppLocalizations.of(context).tr(keys[dayIndex]);
 }
