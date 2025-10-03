@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:weekly_dash_board/core/utils/app_style.dart';
 import 'package:weekly_dash_board/core/utils/app_localizations.dart';
 import 'package:weekly_dash_board/fetuers/home/data/models/task_model.dart' hide TaskPriority;
 import 'package:weekly_dash_board/fetuers/home/data/models/category_model.dart';
