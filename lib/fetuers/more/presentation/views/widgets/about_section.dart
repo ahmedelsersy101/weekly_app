@@ -189,7 +189,7 @@ class _AboutSectionState extends State<AboutSection> {
 
           Center(
             child: Text(
-              AppLocalizations.of(context).tr('©.2024.Weekly.App.All.rights.reserved.'),
+              AppLocalizations.of(context).tr('©.2025.Weekly.App.All.rights.reserved.'),
               style: AppStyles.styleRegular12(
                 context,
               ).copyWith(color: colorScheme.onSurface.withOpacity(0.5)),
