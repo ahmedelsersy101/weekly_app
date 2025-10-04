@@ -11,6 +11,7 @@ import 'package:weekly_dash_board/fetuers/splash/presentation/views/splash_view.
 import 'package:weekly_dash_board/core/models/settings_model.dart' as settings;
 import 'package:weekly_dash_board/core/services/notification_service.dart';
 import 'package:weekly_dash_board/core/services/notification_production_helper.dart';
+import 'package:weekly_dash_board/core/services/scheduled_notification_service.dart';
 import 'package:weekly_dash_board/fetuers/home/data/services/hive_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:weekly_dash_board/core/services/supabase_auth_service.dart';
@@ -38,6 +39,17 @@ Future<void> main() async {
         await SupabaseAuthService.initializeAuthState();
         await HiveService.init();
         await NotificationService.initialize();
+
+        // Initialize scheduled notifications
+        try {
+          await ScheduledNotificationService.initializeScheduledNotifications();
+        } catch (e, st) {
+          // Log but do not crash
+          // ignore: avoid_print
+          print('Scheduled notifications initialization failed: $e');
+          await Sentry.captureException(e, stackTrace: st);
+        }
+
         try {
           await NotificationProductionHelper.initializeProductionMode();
         } catch (e, st) {
@@ -69,6 +81,13 @@ class ResponsiveDashboardApp extends StatelessWidget {
           final s = state.settings;
           final locale = _mapLocale(s?.language);
           final primaryColor = s?.primaryColor ?? AppColors.primary;
+
+          // Refresh scheduled notifications when settings are loaded
+          if (s != null && !state.isLoading) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              context.read<SettingsCubit>().refreshScheduledNotifications();
+            });
+          }
 
           final lightTheme = AppTheme.lightTheme.copyWith(
             colorScheme: ColorScheme.fromSeed(

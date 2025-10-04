@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:weekly_dash_board/core/models/settings_model.dart';
 import 'package:weekly_dash_board/core/services/settings_service.dart';
+import 'package:weekly_dash_board/core/services/scheduled_notification_service.dart';
 
 part 'settings_state.dart';
 
@@ -44,11 +45,15 @@ class SettingsCubit extends Cubit<SettingsState> {
   Future<void> updateNotificationsEnabled(bool enabled) async {
     try {
       if (state.settings == null) return;
-      final newSettings = state.settings!.copyWith(
-        notificationsEnabled: enabled,
-      );
+      final newSettings = state.settings!.copyWith(notificationsEnabled: enabled);
       await SettingsService.saveSettings(newSettings);
 
+      // Update scheduled notifications based on the new setting
+      if (enabled) {
+        await ScheduledNotificationService.refreshAllScheduledNotifications();
+      } else {
+        await ScheduledNotificationService.cancelAllScheduledNotifications();
+      }
 
       emit(state.copyWith(settings: newSettings));
     } catch (e) {
@@ -59,16 +64,11 @@ class SettingsCubit extends Cubit<SettingsState> {
   Future<void> updateReminderTime(int dayOfWeek, TimeOfDay time) async {
     try {
       if (state.settings == null) return;
-      final newReminderTimes = Map<int, TimeOfDay>.from(
-        state.settings!.reminderTimes,
-      );
+      final newReminderTimes = Map<int, TimeOfDay>.from(state.settings!.reminderTimes);
       newReminderTimes[dayOfWeek] = time;
 
-      final newSettings = state.settings!.copyWith(
-        reminderTimes: newReminderTimes,
-      );
+      final newSettings = state.settings!.copyWith(reminderTimes: newReminderTimes);
       await SettingsService.saveSettings(newSettings);
-
 
       emit(state.copyWith(settings: newSettings));
     } catch (e) {
@@ -126,7 +126,6 @@ class SettingsCubit extends Cubit<SettingsState> {
       final newSettings = state.settings!.copyWith(language: language);
       await SettingsService.saveSettings(newSettings);
 
-
       emit(state.copyWith(settings: newSettings));
     } catch (e) {
       emit(state.copyWith(error: e.toString()));
@@ -149,5 +148,30 @@ class SettingsCubit extends Cubit<SettingsState> {
 
   void clearError() {
     emit(state.copyWith(error: null));
+  }
+
+  /// Refresh scheduled notifications based on current settings
+  Future<void> refreshScheduledNotifications() async {
+    try {
+      if (state.settings == null) return;
+
+      if (state.settings!.notificationsEnabled) {
+        await ScheduledNotificationService.refreshAllScheduledNotifications();
+      } else {
+        await ScheduledNotificationService.cancelAllScheduledNotifications();
+      }
+    } catch (e) {
+      emit(state.copyWith(error: e.toString()));
+    }
+  }
+
+  /// Get the status of scheduled notifications
+  Future<Map<String, bool>> getScheduledNotificationsStatus() async {
+    try {
+      return await ScheduledNotificationService.getScheduledNotificationsStatus();
+    } catch (e) {
+      emit(state.copyWith(error: e.toString()));
+      return {'daily': false, 'weekly': false};
+    }
   }
 }
