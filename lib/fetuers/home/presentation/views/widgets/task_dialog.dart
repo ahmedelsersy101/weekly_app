@@ -351,7 +351,7 @@ List<int> _orderedOtherDays(int baseDay) {
 /// ميثود لترجمة الأيام
 String _localizedDayLabel(BuildContext context, int day) {
   // عدلها حسب ترجمتك
-  const daysEn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const daysAr = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+  const daysEn = ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+  const daysAr = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'];
   return Localizations.localeOf(context).languageCode == 'ar' ? daysAr[day] : daysEn[day];
 }
