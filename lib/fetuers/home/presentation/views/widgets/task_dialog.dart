@@ -60,6 +60,9 @@ class _TaskDialogWidgetState extends State<TaskDialogWidget> {
   Widget build(BuildContext context) {
     final isEdit = widget.task != null;
     final baseDay = isEdit ? widget.task!.dayOfWeek : widget.dayIndex!;
+    final allDays = List.generate(7, (i) => i);
+    final otherDays = _orderedOtherDays(baseDay);
+    final isAllSelected = selectedDays.length == otherDays.length;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -116,23 +119,52 @@ class _TaskDialogWidgetState extends State<TaskDialogWidget> {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: _orderedOtherDays(baseDay).map((d) {
-                final isSelected = selectedDays.contains(d);
-                return FilterChip(
-                  label: Text(_localizedDayLabel(context, d)),
-                  selected: isSelected,
-                  onSelected: (val) {
+              children: [
+                /// ✅ زر تحديد كل الأيام
+                FilterChip(
+                  avatar: Icon(
+                    isAllSelected ? Icons.check_circle : Icons.radio_button_unchecked,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  label: Text(
+                    AppLocalizations.of(
+                      context,
+                    ).tr(isAllSelected ? 'unselectAll' : 'selectAll'),
+                  ),
+                  selected: isAllSelected,
+                  onSelected: (_) {
                     setState(() {
-                      if (val) {
-                        selectedDays.add(d);
+                      if (isAllSelected) {
+                        selectedDays.clear();
                       } else {
-                        selectedDays.remove(d);
+                        selectedDays = allDays.toSet();
+                        selectedDays.remove(baseDay);
                       }
                     });
                   },
-                );
-              }).toList(),
+                ),
+
+
+                /// 🗓️ باقي الأيام
+                ...otherDays.map((d) {
+                  final isSelected = selectedDays.contains(d);
+                  return FilterChip(
+                    label: Text(_localizedDayLabel(context, d)),
+                    selected: isSelected,
+                    onSelected: (val) {
+                      setState(() {
+                        if (val) {
+                          selectedDays.add(d);
+                        } else {
+                          selectedDays.remove(d);
+                        }
+                      });
+                    },
+                  );
+                }),
+              ],
             ),
+
             const SizedBox(height: 8),
 
             /// عرض الأيام المختارة

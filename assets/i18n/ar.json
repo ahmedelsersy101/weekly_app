@@ -1,4 +1,6 @@
 {
+  "selectAll": "تحديد الكل",
+  "unselectAll": "إلغاء التحديد",
   "app.more": "المزيد",
   "app.settings": "الإعدادات",
   "app.title": "اسبوعي",

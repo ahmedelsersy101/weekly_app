@@ -1,4 +1,6 @@
 {
+  "selectAll": "Select All",
+  "unselectAll": "Unselect All",
   "logout.account": "Logout Account",
   "app.more": "More",
   "app.settings": "Settings",
