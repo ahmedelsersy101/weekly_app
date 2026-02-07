@@ -20,13 +20,11 @@ A cross-platform Flutter app to plan, track, and visualize your weekly tasks. It
 
 ---
 
-### Screenshots / Demo
+## App Screenshots | صور التطبيق
 
-Replace these with your real screenshots or GIFs:
-
-![Home](assets/screenshots/home.jpeg)
-![Statistics](assets/screenshots/statistics.jpeg)
-![Settings](assets/screenshots/settings.jpeg)
+<div align="center">
+  <img src="assets/weekly_banner.jpg" alt="App Banner" width="100%" style="border-radius: 12px;" />
+</div>
 
 ---
 
